@@ -1,0 +1,15 @@
+{
+  "files.associations": {
+    "inet.h": "c",
+    "colors.h": "c",
+    "stat.h": "c",
+    "zlib.h": "c",
+    "string.h": "c",
+    "stdlib.h": "c",
+    "stdio.h": "c",
+    "stdbool.h": "c",
+    "png.h": "c",
+    "endian.h": "c",
+    "typeinfo": "c"
+  }
+}

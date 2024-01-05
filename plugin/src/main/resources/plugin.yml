@@ -1,0 +1,7 @@
+name: MinecraftMapChat
+version: 0.0.1
+main: codes.anb.minecraftmapchat.MinecraftMapChat
+description: A plugin that works adds support for minecraft map chat
+author: Anbcodes
+website: https://anb.codes
+api-version: "1.20"

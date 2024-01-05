@@ -1,0 +1,27 @@
+#!/bin/bash
+
+pushd ../server
+
+fnm use 18
+
+npm run build
+
+mv server-linux server-macos server-win.exe ../plugin/src/main/resources
+
+popd
+
+pushd ../client
+
+npm run build
+
+mv client.zip ../plugin/src/main/resources
+
+popd
+
+pushd ../image-gen
+
+gcc  ./main.c -O3 -o image-generator -lz -lpng -Werror
+
+mv image-generator ../plugin/src/main/resources
+
+popd

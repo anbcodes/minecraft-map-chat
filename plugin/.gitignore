@@ -1,0 +1,13 @@
+# Ignore Gradle project-specific cache directory
+.gradle
+
+# Ignore Gradle build output directory
+build
+
+run
+
+bin
+
+src/main/resources/server*
+src/main/resources/image-generator
+src/main/resources/client.zip

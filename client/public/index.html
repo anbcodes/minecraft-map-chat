@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0, user-scalable=no"
+    />
+
+    <title>Minecraft Map</title>
+    <link rel="stylesheet" href="/leaflet.css" />
+    <style>
+      /* Set the map container size */
+      #map {
+        height: 100vh;
+        width: 100vw;
+        background-color: black;
+      }
+      body {
+        font-family: "Helvetica Neue", Arial, Helvetica, sans-serif;
+        padding: 0;
+        margin: 0;
+        background-color: black;
+        overflow: hidden;
+      }
+
+      img {
+        image-rendering: pixelated;
+        image-rendering: crisp-edges;
+        image-rendering: -webkit-optimize-contrast;
+        image-rendering: -o-pixelated;
+      }
+
+      #overlay {
+        z-index: 1001;
+        display: flex;
+        position: fixed;
+        top: 0px;
+        left: 0px;
+        width: 100vw;
+        height: 100vh;
+        pointer-events: none;
+      }
+
+      #cords {
+        top: 10px;
+        right: 10px;
+        padding: 5px;
+        background-color: rgba(0, 0, 0, 0.414);
+        color: white;
+        align-self: flex-end;
+        position: absolute;
+      }
+
+      /* .player {
+        position: absolute;
+        width: 20px;
+        height: 20px;
+        background-color: red;
+      } */
+
+      #show-chat {
+        z-index: 10002;
+        pointer-events: all;
+        padding: 5px 0;
+        border: none;
+        border-radius: 100%;
+        font-size: 14px;
+        width: 45px;
+        height: 45px;
+        background-color: rgba(209, 209, 209, 0);
+        color: white;
+        top: 10px;
+        left: 10px;
+        position: fixed;
+        fill: white;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+
+      #show-chat:hover {
+        background-color: rgba(255, 255, 255, 0.136);
+        cursor: pointer;
+      }
+
+      #show-chat:active {
+        background-color: rgba(255, 255, 255, 0.25);
+      }
+
+      #chat {
+        display: none;
+        flex-direction: column;
+        max-width: 400px;
+        width: 100vw;
+        position: absolute;
+        left: 0px;
+        top: 0px;
+        height: 100%;
+        background-color: rgba(0, 0, 0, 0.299);
+        pointer-events: all;
+        max-height: 600px;
+        position: fixed;
+      }
+
+      #messages {
+        padding: 10px;
+        color: white;
+        flex-direction: column-reverse;
+        display: flex;
+        justify-content: end;
+        flex-grow: 1;
+      }
+
+      #send-message {
+        padding: 10px;
+        display: flex;
+      }
+
+      #message-input {
+        background-color: rgba(0, 0, 0, 0.434);
+        color: white;
+        border: rgba(107, 107, 107, 0.477) 1px solid;
+        border-radius: 5px;
+        padding: 8px;
+        font-size: 17px;
+        flex-grow: 1;
+      }
+
+      #message-input:focus {
+        outline: none;
+      }
+
+      #send {
+        pointer-events: all;
+        padding: 5px 0;
+        border: none;
+        border-radius: 100%;
+        font-size: 14px;
+        background-color: rgba(209, 209, 209, 0);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 35px;
+        height: 35px;
+        padding: 8px;
+        margin: auto;
+        margin-left: 5px;
+      }
+
+      #send:hover {
+        background-color: rgba(255, 255, 255, 0.136);
+        cursor: pointer;
+      }
+
+      #send:active {
+        background-color: rgba(255, 255, 255, 0.25);
+      }
+
+      #set-username {
+        margin-top: 15px;
+        z-index: 10002;
+        pointer-events: all;
+        padding: 5px 0;
+        border: none;
+        border-radius: 5px;
+        font-size: 14px;
+        background-color: rgba(209, 209, 209, 0);
+        color: white;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 5px;
+        margin-left: 5px;
+        width: fit-content;
+        align-self: flex-end;
+      }
+
+      #set-username:hover {
+        background-color: rgba(255, 255, 255, 0.136);
+        cursor: pointer;
+      }
+
+      #set-username:active {
+        background-color: rgba(255, 255, 255, 0.25);
+      }
+    </style>
+  </head>
+  <body>
+    <div id="overlay">
+      <div id="online"></div>
+      <div id="cords">?, ?, ?</div>
+      <div id="newest-chat"></div>
+      <button id="show-chat">
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          height="24"
+          viewBox="0 -960 960 960"
+          width="24"
+        >
+          <path
+            d="M320-520q17 0 28.5-11.5T360-560q0-17-11.5-28.5T320-600q-17 0-28.5 11.5T280-560q0 17 11.5 28.5T320-520Zm160 0q17 0 28.5-11.5T520-560q0-17-11.5-28.5T480-600q-17 0-28.5 11.5T440-560q0 17 11.5 28.5T480-520Zm160 0q17 0 28.5-11.5T680-560q0-17-11.5-28.5T640-600q-17 0-28.5 11.5T600-560q0 17 11.5 28.5T640-520ZM80-80v-720q0-33 23.5-56.5T160-880h640q33 0 56.5 23.5T880-800v480q0 33-23.5 56.5T800-240H240L80-80Zm126-240h594v-480H160v525l46-45Zm-46 0v-480 480Z"
+          />
+        </svg>
+      </button>
+      <div id="chat">
+        <button id="set-username">Set username</button>
+        <div id="messages"></div>
+        <div id="send-message">
+          <input type="text" id="message-input" placeholder="send message" />
+          <button id="send">
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              viewBox="0 0 24 24"
+              width="24"
+              height="24"
+            >
+              <title>arrow-right</title>
+              <path
+                fill="white"
+                d="M4,11V13H16L10.5,18.5L11.92,19.92L19.84,12L11.92,4.08L10.5,5.5L16,11H4Z"
+              />
+            </svg>
+          </button>
+        </div>
+      </div>
+    </div>
+    <div id="map"></div>
+
+    <script src="/index.js"></script>
+  </body>
+</html>
