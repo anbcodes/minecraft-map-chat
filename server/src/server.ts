@@ -7,6 +7,38 @@ import { createInterface } from "readline";
 import fastifyWebsocket from "@fastify/websocket";
 import { WebSocket } from "ws";
 import { spawn } from "child_process";
+import { mkdirSync } from "fs";
+
+// Arguments
+
+let overworldRegionFolder = process.argv[2];
+let netherRegionFolder = process.argv[3];
+let endRegionFolder = process.argv[4];
+let dataFolder = process.argv[5];
+let host = process.argv[6] ?? '0.0.0.0';
+let port = +(process.argv[7] ?? 14367);
+
+let playerMovedSinceLastUpdate = false;
+const outOverworld = join(dataFolder, 'tiles', 'overworld');
+const outNether = join(dataFolder, 'tiles', 'nether');
+const outEnd = join(dataFolder, 'tiles', 'end');
+mkdirSync(outOverworld, { recursive: true });
+mkdirSync(outNether, { recursive: true });
+mkdirSync(outEnd, { recursive: true });
+
+const spawnAsync = (command: string, args: string[]) => new Promise<number | null>(resolve => spawn(command, args).on('exit', (code) => resolve(code)))
+
+async function generateTiles() {
+  const exec = join(dataFolder, 'image-generator')
+
+  await Promise.all([
+    spawnAsync(exec, [overworldRegionFolder, outOverworld]),
+    spawnAsync(exec, [netherRegionFolder, outNether]),
+    spawnAsync(exec, [endRegionFolder, outEnd]),
+  ]);
+
+  playerMovedSinceLastUpdate = false;
+}
 
 (async () => {
   // const logFile = '/home/andrew/Code/js/minecraft-map/server/log.txt';
@@ -35,10 +67,7 @@ import { spawn } from "child_process";
 
   log("starting...");
 
-  let dataFolder = process.argv[3];
-  let regionFolder = process.argv[2];
-
-  log("region folder", regionFolder);
+  log("region folders", overworldRegionFolder, netherRegionFolder, endRegionFolder);
 
   let zip = new AdmZip(join(dataFolder, 'client.zip'))
 
@@ -98,12 +127,10 @@ import { spawn } from "child_process";
 
   const broadcast = (msg: any) => connections.forEach(c => c.send(JSON.stringify(msg)));
 
-  let playerMovedSinceLastUpdate = false;
 
   try {
-    const out = join(dataFolder, 'tiles');
-    const exec = join(dataFolder, 'image-generator')
-    await new Promise<number | null>(resolve => spawn(exec, [regionFolder, out]).on('exit', (code) => resolve(code)));
+
+    await generateTiles();
 
     setInterval(async () => {
       if (!playerMovedSinceLastUpdate) {
@@ -111,19 +138,13 @@ import { spawn } from "child_process";
       }
       playerMovedSinceLastUpdate = false;
       log("Updating files");
-      const out = join(dataFolder, 'tiles');
-      const exec = join(dataFolder, 'image-generator')
-      await new Promise<number | null>(resolve => spawn(exec, [regionFolder, out]).on('exit', (code) => resolve(code)));
-
+      await generateTiles();
       log("Finished update");
 
       setTimeout(() => {
         sendCommand("exec save-all");
       }, 1000 * 30)
     }, 1000 * 60);
-
-    let host = process.argv[4] ?? '0.0.0.0';
-    let port = +(process.argv[5] ?? 14367);
 
     log(`Listening at http://${host}:${port}`);
     await server.listen({ port, host });
@@ -152,6 +173,7 @@ import { spawn } from "child_process";
         z: +rest[3],
         yaw: +rest[4],
         pitch: +rest[5],
+        dim: rest[6],
       })
     } else if (type === 'leave') {
       broadcast({

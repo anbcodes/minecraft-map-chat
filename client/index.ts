@@ -9,16 +9,55 @@ const $ = <T extends HTMLElement>(s: string): T => {
 
 let map = L.map('map', { crs: L.CRS.Simple, minZoom: -17, maxZoom: 5, zoomControl: false }).setView([0, 0], 0);
 
-L.tileLayer(
-  '/tiles/{z}/{x}.{y}.png',
-  {
-    maxZoom: 5,
-    maxNativeZoom: 0,
-    minZoom: -17,
-    minNativeZoom: -16,
-    tileSize: 512
-  }
+let layerConfig = {
+  maxZoom: 5,
+  maxNativeZoom: 0,
+  minZoom: -17,
+  minNativeZoom: -16,
+  tileSize: 512
+}
+
+let overworld = L.tileLayer(
+  '/tiles/overworld/{z}/{x}.{y}.png',
+  layerConfig,
 ).addTo(map);
+
+let nether = L.tileLayer(
+  '/tiles/nether/{z}/{x}.{y}.png',
+  layerConfig,
+)
+
+let end = L.tileLayer(
+  '/tiles/end/{z}/{x}.{y}.png',
+  layerConfig,
+)
+
+let display = 'world';
+
+$("#overworld").addEventListener('click', () => {
+  overworld.addTo(map);
+  nether.remove()
+  end.remove()
+
+  display = 'world';
+})
+$("#nether").addEventListener('click', () => {
+  overworld.remove();
+  nether.addTo(map);
+  end.remove()
+
+
+  display = 'world_nether';
+
+})
+$("#end").addEventListener('click', () => {
+  overworld.remove();
+  nether.remove()
+  end.addTo(map);
+
+  display = 'world_the_end';
+})
+
 
 let cords = $<HTMLDivElement>("#cords");
 
@@ -29,7 +68,7 @@ map.on('mousemove', (ev) => {
 })
 
 let socket = new WebSocket(((window.location.protocol === "https:") ? "wss://" : "ws://") + window.location.host + "/socket");
-// let socket = new WebSocket('ws://192.168.86.100:14367/socket');
+// let socket = new WebSocket('ws://192.168.86.100:20001/socket');
 
 let players: Record<string, L.Marker> = {};
 
@@ -75,6 +114,7 @@ socket.addEventListener('message', (ev) => {
 
   if (data.type === 'move') {
     let player = players[data.player];
+
     if (!player) {
       player = players[data.player] = new L.Marker(L.latLng(-data.z, data.x), {
         title: data.player,
@@ -82,10 +122,19 @@ socket.addEventListener('message', (ev) => {
         icon: L.icon({
           iconUrl: '/player_icon.png',
         })
-      }).addTo(map);
+      })
     }
+
     player.setLatLng(new L.LatLng(-data.z, data.x));
     player.setRotationAngle(data.yaw + 180);
+
+    if (data.dim === display) {
+      player.addTo(map);
+    } else if (player) {
+      player.remove();
+    }
+
+
   } else if (data.type === 'leave') {
     let marker = players[data.player];
     if (marker) {

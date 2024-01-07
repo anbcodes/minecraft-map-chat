@@ -55,9 +55,9 @@ public class MinecraftMapChat extends JavaPlugin implements Listener {
         var dataFolder = this.getDataFolder().toPath();
         var path = dataFolder.resolve(execName);
         var tiles = dataFolder;
-        var worldFolder = this.getServer().getWorlds().get(0).getWorldFolder();
-        var input = worldFolder.toPath().resolve("region");
-
+        var overworld = this.getServer().getWorld("world").getWorldFolder().toPath().resolve("region");
+        var nether = this.getServer().getWorld("world_nether").getWorldFolder().toPath().resolve("DIM-1/region");
+        var end = this.getServer().getWorld("world_the_end").getWorldFolder().toPath().resolve("DIM1/region");
         path.toFile().setExecutable(true);
         var pathImageGenerator = dataFolder.resolve("image-generator");
         pathImageGenerator.toFile().setExecutable(true);
@@ -68,7 +68,9 @@ public class MinecraftMapChat extends JavaPlugin implements Listener {
         try {
             var builder = new ProcessBuilder(
                     path.toAbsolutePath().toString(),
-                    input.toAbsolutePath().toString(),
+                    overworld.toAbsolutePath().toString(),
+                    nether.toAbsolutePath().toString(),
+                    end.toAbsolutePath().toString(),
                     tiles.toAbsolutePath().toString(),
                     host,
                     port);
@@ -164,7 +166,8 @@ public class MinecraftMapChat extends JavaPlugin implements Listener {
         var z = player.getZ();
         var yaw = player.getYaw();
         var pitch = player.getPitch();
-        w.println("m " + player.getName() + " " + x + " " + y + " " + z + " " + yaw + " " + pitch);
+        var dim = player.getWorld().getName();
+        w.println("m " + player.getName() + " " + x + " " + y + " " + z + " " + yaw + " " + pitch + " " + dim);
         w.flush();
     }
 

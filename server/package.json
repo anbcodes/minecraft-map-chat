@@ -5,9 +5,6 @@
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "cli": "ts-node ./src/main.ts",
-    "serve:dev": "npm run build && node ./server.js",
-    "build:client": "rm -rf ./client && cp ../client/public ./client && esbuild --bundle --outfile=./client/index.js ../client/index.ts",
     "build": "esbuild --bundle --platform=node --outfile=./server.js src/server.ts && pkg ./server.js"
   },
   "keywords": [],

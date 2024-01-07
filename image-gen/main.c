@@ -49,7 +49,7 @@ enum {
 // Globals
 
 #define ntohll(x) (((uint64_t)ntohl((x) & 0xFFFFFFFF) << 32) | ntohl((x) >> 32))
-#define MAX_Y_SECTIONS 25
+#define MAX_Y_SECTIONS 26
 
 char *output_dir;
 char *input_dir;
@@ -407,6 +407,9 @@ bool handle_chunk(uint8_t *file, int index, uint8_t image_data[512][512], uint16
     int8_t *y_ref = nbt_get_key(sections + at, 0xffffffff, "Y");
     if (y_ref != 0) {
       dprintf("Setting section %d\n", *y_ref + 5);
+      if (*y_ref + 5 >= MAX_Y_SECTIONS) {
+        printf("ERROR: y section is too large %d\n", *y_ref + 5);
+      }
       ordered_sections[*y_ref + 5] = sections + at;
     }
     at += nbt_get_length_of_tag(10, sections + at, 0xffffffff);
@@ -462,14 +465,17 @@ bool handle_chunk(uint8_t *file, int index, uint8_t image_data[512][512], uint16
 
     // If there is no block array, it's all a single block
     if (compressed_blocks == 0) {
+      dprintf("No block array found %d, %d, %d, %d, %d\n", region_block_x, ((i - 5) * 16), region_block_z, palette_length, palette_mapped[0]);
       if (palette_mapped[0] == 0) {
         continue;
       }
-      for (int cx = 0; cx < 16; cx++) {
-        for (int cz = 0; cz < 16; cz++) {
-          image_data[region_block_z + cz][region_block_z + cx] = palette_mapped[0];
-        }
-      }
+
+      // Broken for some reason, but is almost never needed. This handles chunks that are completely full with one block
+      // for (int cx = 0; cx < 16; cx++) {
+      //   for (int cz = 0; cz < 16; cz++) {
+      //     image_data[region_block_z + cz][region_block_z + cx] = palette_mapped[0];
+      //   }
+      // }
       return true;
     } else {
       // Decompress the block array
@@ -553,16 +559,23 @@ int handle_region(void *arg) {
   fmt(file_name, "%s/r.%d.%d.mca", input_dir, image->x, image->z);
   fmt(output_bin_file_name, "%s/0/%d.%d.bin", output_dir, image->x, image->z);
 
+  if (access(file_name, F_OK) != 0) {
+    printf("Can't access %s\n", file_name);
+    return 1;
+  }
+
   FILE *fd = fopen(file_name, "r");
 
   struct stat st;
-  fstat(fileno(fd), &st);
+  int no = fileno(fd);
+  fstat(no, &st);
 
   if (access(output_bin_file_name, F_OK) == 0) {
     dprintf("Using cached %s\n", output_bin_file_name);
     struct stat st2;
     FILE *fd2 = fopen(output_bin_file_name, "rb");
-    fstat(fileno(fd2), &st2);
+    int no2 = fileno(fd2);
+    fstat(no2, &st2);
     if (st2.st_mtim.tv_nsec >= st.st_mtim.tv_nsec) {
       int amount = fread(image->data, 1, 512 * 512, fd2);
       if (amount == 512 * 512) {
@@ -583,6 +596,8 @@ int handle_region(void *arg) {
     return 1;
   }
 
+  fclose(fd);
+
   thread_local static uint16_t heightmap[512][512];
 
   for (int c = 0; c < 1024; c++) {
@@ -599,7 +614,9 @@ int handle_region(void *arg) {
 
   // Write bin output file
   FILE *fd_out_bin = fopen(output_bin_file_name, "wb");
+  dprintf("Outbin: %s %p\n", output_bin_file_name, fd_out_bin);
   fwrite(image->data, 1, 512 * 512, fd_out_bin);
+  fclose(fd_out_bin);
 }
 
 typedef struct {
@@ -669,8 +686,14 @@ image_data find_image_data(map_image *images, int count, int x, int z) {
 
 // Main function
 
+int alt_main(int argc, char **argv);
+
 int main(int argc, char **argv) {
   // Usage: ./main [input_folder] [output_folder]
+
+  if (argc >= 2 && strcmp(argv[1], "single") == 0) {
+    return alt_main(argc, argv);
+  }
 
   if (argc < 3) {
     printf("Usage: ./main [input_folder] [output_folder]\n");
@@ -713,6 +736,7 @@ int main(int argc, char **argv) {
 
   for (int i = 0; i < images_count; i++) {
     dprintf("Starting to processs %d %d\n", images[i].x, images[i].z);
+    // handle_region(&images[i]);
     thrd_create(&images[i].thread, handle_region, &images[i]);
   }
 
@@ -766,4 +790,40 @@ int main(int argc, char **argv) {
     previous_image_count = new_images_count;
     free(arguments);
   };
+}
+
+int alt_main(int argc, char **argv) {
+  if (argc < 4) {
+    printf("Usage: ./main single [input_file] [output_file]\n");
+    return 1;
+  }
+
+  char *input_file = argv[2];
+  char *output_file = argv[3];
+
+  FILE *fd = fopen(input_file, "r");
+
+  struct stat st;
+  fstat(fileno(fd), &st);
+
+  long size = st.st_size;
+
+  uint8_t *file_buf = malloc(size);
+
+  size_t count = fread(file_buf, 1, size, fd);
+  if (count != size) {
+    dprintf("Got incorrect file size\n");
+    return 1;
+  }
+
+  static uint16_t heightmap[512][512];
+  static uint8_t data[512][512];
+
+  for (int c = 0; c < 1024; c++) {
+    handle_chunk(file_buf, c, data, heightmap);
+  }
+
+  apply_heightmap(data, heightmap);
+
+  save_png(output_file, data);
 }

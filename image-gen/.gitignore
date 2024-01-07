@@ -1,4 +1,5 @@
 test_out
 core
 main
-out.txt
+out*
+image-generator

@@ -184,11 +184,43 @@
       #set-username:active {
         background-color: rgba(255, 255, 255, 0.25);
       }
+
+      #dimensions {
+        position: fixed;
+        top: 10px;
+        width: 100%;
+        display: flex;
+        justify-content: center;
+        gap: 10px;
+      }
+
+      #dimensions > button {
+        pointer-events: all;
+        padding: 5px 10px;
+        background-color: rgba(0, 0, 0, 0.548);
+        color: white;
+        border: rgba(255, 255, 255, 0.426) 1px solid;
+        border-radius: 5px;
+        cursor: pointer;
+      }
+
+      #dimensions > button:hover {
+        background-color: rgba(0, 0, 0, 0.716);
+      }
+
+      #dimensions > button:active {
+        background-color: rgba(0, 0, 0, 0.858);
+      }
     </style>
   </head>
   <body>
     <div id="overlay">
       <div id="online"></div>
+      <div id="dimensions">
+        <button id="overworld">Overworld</button>
+        <button id="nether">Nether</button>
+        <button id="end">End</button>
+      </div>
       <div id="cords">?, ?, ?</div>
       <div id="newest-chat"></div>
       <button id="show-chat">

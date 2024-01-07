@@ -6,7 +6,7 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "dev": "esbuild --watch --bundle --outfile=./public/index.js index.ts",
-    "build": "esbuild --bundle --outfile=./public/index.js index.ts && cd ./public && zip -r ../client.zip ./*"
+    "build": "esbuild --bundle --outfile=./public/index.js index.ts && cd ./public && zip -r ../client.zip ./* -x '*tiles*'"
   },
   "keywords": [],
   "author": "",
