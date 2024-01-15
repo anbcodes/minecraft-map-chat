@@ -27,9 +27,9 @@ provides a live chat and live player positions.
 
 ### The end
 
-[!end](/photos/end.png)
+![end](/photos/end.png)
 
-[!end zoomed out](/photos/end-zoomed-out.png)
+![end zoomed out](/photos/end-zoomed-out.png)
 
 ## Technical details
 
